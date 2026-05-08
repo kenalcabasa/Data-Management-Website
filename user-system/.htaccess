@@ -1,0 +1,40 @@
+# InfinityFree .htaccess configuration
+
+# Prevent directory listing
+Options -Indexes
+
+# Protect sensitive files
+<FilesMatch "\.(sql|log|ini|phar|md)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Protect config directory
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Block access to config directory
+    RewriteRule ^config/ - [F,L]
+    
+    # Block access to includes directory
+    RewriteRule ^includes/ - [F,L]
+</IfModule>
+
+# Set default character set
+AddDefaultCharset UTF-8
+
+# Security headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "DENY"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+# PHP settings for InfinityFree
+<IfModule mod_php7.c>
+    php_value session.cookie_httponly 1
+    php_value session.use_only_cookies 1
+</IfModule>
+
+# Error pages
+ErrorDocument 404 /404.html
