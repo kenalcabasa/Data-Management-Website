@@ -94,6 +94,7 @@ include 'includes/header.php';
         display: flex;
         gap: 0.5rem;
         flex-wrap: wrap;
+        align-items: center;
     }
     
     .api-tag {
@@ -121,18 +122,21 @@ include 'includes/header.php';
         background: #d4edda;
         color: #155724;
         border: 1px solid #c3e6cb;
+        display: block;
     }
     
     .status-error {
         background: #f8d7da;
         color: #721c24;
         border: 1px solid #f5c6cb;
+        display: block;
     }
     
     .status-loading {
         background: #d1ecf1;
         color: #0c5460;
         border: 1px solid #bee5eb;
+        display: block;
     }
     
     .data-stats {
@@ -511,11 +515,12 @@ async function fetchAPIData() {
         if (result.error) {
             showStatus('Error: ' + result.error, 'error');
         } else {
-            showStatus(`✅ ${result.message}`, 'success');
+            showStatus('✅ ' + result.message, 'success');
             // Reload the stored data
-            loadStoredData();
-            // Update stats after short delay
-            setTimeout(() => location.reload(), 1500);
+            setTimeout(() => {
+                loadStoredData();
+                location.reload();
+            }, 1500);
         }
     } catch (error) {
         showStatus('Error: ' + error.message, 'error');
@@ -560,12 +565,13 @@ async function loadStoredData(page = 0) {
     }
 }
 
-// Update table
+// Update table with data
 function updateTable(data) {
     const tableBody = document.getElementById('tableBody');
     
     if (data.length === 0) {
         tableBody.innerHTML = '<tr><td colspan="13"><div class="empty-state"><div class="icon">📭</div><p>No data found. Try different filters or pull data first.</p></div></td></tr>';
+        document.getElementById('pagination').style.display = 'none';
         return;
     }
     
@@ -574,9 +580,26 @@ function updateTable(data) {
     data.forEach(item => {
         const row = document.createElement('tr');
         
+        // Format date
+        let crashDate = '';
+        if (item.crash_date) {
+            const date = new Date(item.crash_date);
+            crashDate = date.toLocaleDateString('en-US', {
+                month: '2-digit',
+                day: '2-digit',
+                year: 'numeric'
+            });
+        }
+        
+        // Format time
+        let crashTime = item.crash_time || '';
+        if (crashTime && crashTime.length > 5) {
+            crashTime = crashTime.substring(0, 5);
+        }
+        
         row.innerHTML = `
-            <td>${item.crash_date || ''}</td>
-            <td>${item.crash_time || ''}</td>
+            <td>${crashDate}</td>
+            <td>${crashTime}</td>
             <td>${item.borough || ''}</td>
             <td>${item.zip_code || ''}</td>
             <td>${item.latitude || ''}</td>
@@ -594,7 +617,7 @@ function updateTable(data) {
     });
 }
 
-// Update pagination
+// Update pagination controls
 function updatePagination(total, page, limit) {
     const paginationDiv = document.getElementById('pagination');
     const totalPages = Math.ceil(total / limit);
@@ -605,7 +628,7 @@ function updatePagination(total, page, limit) {
     }
     
     paginationDiv.style.display = 'flex';
-    document.getElementById('paginationInfo').textContent = `Page ${page + 1} of ${totalPages} (${total} records)`;
+    document.getElementById('paginationInfo').textContent = `Page ${page + 1} of ${totalPages} (${total} total records)`;
     
     const buttonsDiv = document.getElementById('paginationButtons');
     buttonsDiv.innerHTML = '';
@@ -617,11 +640,16 @@ function updatePagination(total, page, limit) {
     prevBtn.onclick = () => loadStoredData(page - 1);
     buttonsDiv.appendChild(prevBtn);
     
-    // Page buttons
-    for (let i = Math.max(0, page - 2); i < Math.min(totalPages, page + 3); i++) {
+    // Page number buttons
+    const startPage = Math.max(0, page - 2);
+    const endPage = Math.min(totalPages, page + 3);
+    
+    for (let i = startPage; i < endPage; i++) {
         const pageBtn = document.createElement('button');
         pageBtn.textContent = i + 1;
-        if (i === page) pageBtn.classList.add('active');
+        if (i === page) {
+            pageBtn.classList.add('active');
+        }
         pageBtn.onclick = () => loadStoredData(i);
         buttonsDiv.appendChild(pageBtn);
     }
@@ -641,13 +669,28 @@ function showStatus(message, type) {
     statusDiv.className = 'status-message status-' + type;
     statusDiv.style.display = 'block';
     
-    if (type === 'success') {
+    if (type === 'success' || type === 'error') {
         setTimeout(() => {
             statusDiv.style.display = 'none';
         }, 5000);
     }
 }
 
-// Reset filters
+// Reset all filters
 function resetFilters() {
-    document.getElementById
+    document.getElementById('crashDate').value = '';
+    document.getElementById('borough').value = '';
+    document.getElementById('zipCode').value = '';
+    document.getElementById('onStreetName').value = '';
+    document.getElementById('crossStreet').value = '';
+    document.getElementById('personsInjured').value = '';
+    loadStoredData();
+}
+
+// Load data when page loads
+window.onload = function() {
+    loadStoredData();
+};
+</script>
+
+<?php include 'includes/footer.php'; ?>
